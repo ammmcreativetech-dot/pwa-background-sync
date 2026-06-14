@@ -1,0 +1,36 @@
+{
+  "name": "pwa-background-sync",
+  "version": "0.1.0",
+  "description": "Tiny dependency-free helpers for the Background Sync and Periodic Background Sync APIs — deferred syncs that fire on reconnect (even with the tab closed) and Service Worker messaging. Graceful no-ops where unsupported.",
+  "keywords": [
+    "pwa",
+    "service-worker",
+    "background-sync",
+    "periodic-sync",
+    "offline",
+    "offline-first",
+    "sync",
+    "web",
+    "typescript"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": { "node": ">=18" },
+  "author": "Amos Matzke <amos@am-creativetech.com> (https://quanta-study.de)",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/ammmcreativetech-dot/pwa-background-sync.git" },
+  "homepage": "https://github.com/ammmcreativetech-dot/pwa-background-sync#readme",
+  "bugs": { "url": "https://github.com/ammmcreativetech-dot/pwa-background-sync/issues" },
+  "devDependencies": { "typescript": "^5.7.0" }
+}
