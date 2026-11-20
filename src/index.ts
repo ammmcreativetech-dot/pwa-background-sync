@@ -2,12 +2,11 @@
  * pwa-background-sync
  * -------------------
  * Tiny, dependency-free helpers for the PWA Background Sync and Periodic Background
- * Sync APIs: register deferred syncs that fire when connectivity returns — even if
- * the tab is closed — and message your Service Worker.
+ * Sync APIs: request deferred browser sync registrations and message an active worker.
  *
- * Everything no-ops gracefully where the API is unsupported (Safari, Firefox), so
- * callers don't need feature-detection branches. Pair with an `online`-event
- * fallback for full coverage.
+ * Capabilities and scheduling depend on the browser. These helpers await a ready
+ * service-worker registration, which can remain pending if no registration activates.
+ * Callers provide their queue, handlers and fallback behavior.
  */
 
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
@@ -25,7 +24,7 @@ export async function isBackgroundSyncSupported(): Promise<boolean> {
   return reg !== null && 'sync' in reg;
 }
 
-/** Whether Periodic Background Sync is available (Chrome/Edge, installed PWA). */
+/** Whether Periodic Background Sync is exposed on the ready registration. */
 export async function isPeriodicSyncSupported(): Promise<boolean> {
   const reg = await getRegistration();
   return reg !== null && 'periodicSync' in reg;
@@ -57,9 +56,8 @@ export interface PeriodicSyncOptions {
 }
 
 /**
- * Register a Periodic Background Sync under `tag` (fires roughly every
- * `minIntervalMs` while online + idle, even with no tab open). Requires an
- * installed PWA and granted `periodic-background-sync` permission.
+ * Request a Periodic Background Sync registration under `tag` with a minimum
+ * interval. Actual delivery and eligibility remain subject to browser policy.
  */
 export async function registerPeriodicSync(
   tag: string,

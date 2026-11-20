@@ -1,69 +1,53 @@
 # pwa-background-sync
 
-> Tiny, dependency-free helpers for the **Background Sync** and **Periodic Background Sync** APIs — register deferred syncs that fire when connectivity returns (even with the tab closed) and message your Service Worker. Graceful no-ops where unsupported.
+TypeScript helpers for registering browser Background Sync and Periodic Background Sync, checking the available capabilities and sending messages to an active service worker. The source has no runtime dependencies.
 
-![types](https://img.shields.io/badge/types-included-blue)
-![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
-![license](https://img.shields.io/badge/license-MIT-green)
+## Build and use this repository
 
-The Background Sync APIs are powerful but verbose to use safely: every call needs a `navigator.serviceWorker.ready` await, a feature-detection guard, and a try/catch (registration throws on unsupported browsers and when permission is denied). This wraps all of that into four one-liners that simply return `true`/`false`.
+The exact npm name is not currently a published distribution of this project. Its manifest is private. Build the source checkout:
 
-```bash
-npm install pwa-background-sync
+```sh
+git clone https://github.com/ammmcreativetech-dot/pwa-background-sync.git
+cd pwa-background-sync
+npm install --ignore-scripts
+npm test
 ```
 
-## Usage
-
-```ts
-import {
-  registerBackgroundSync,
-  registerPeriodicSync,
-  postMessageToServiceWorker,
-  isBackgroundSyncSupported,
-} from 'pwa-background-sync';
-
-// 1. After queuing an offline mutation, ask the browser to retry it when back online
-await queueOfflineMutation(data);
-await registerBackgroundSync('flush-mutations');   // → SW gets a `sync` event with this tag
-
-// 2. Keep an offline cache fresh roughly every 12h (installed PWA, Chrome/Edge)
-await registerPeriodicSync('refresh-cache', { minIntervalMs: 12 * 60 * 60 * 1000 });
-
-// 3. Hand the SW an auth token so it can sync headlessly (no tab open)
-await postMessageToServiceWorker({ type: 'STORE_AUTH_TOKEN', token });
-
-// 4. Branch on support if you want a custom fallback
-if (!(await isBackgroundSyncSupported())) startOnlineEventFallback();
-```
-
-Then in your Service Worker:
+In an application with a registered, active service worker:
 
 ```js
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'flush-mutations') event.waitUntil(flushQueue());
+import {registerBackgroundSync, registerPeriodicSync} from './dist/index.js';
+
+const oneShotRegistered = await registerBackgroundSync('flush-mutations');
+const periodicRegistered = await registerPeriodicSync('refresh-cache', {
+  minIntervalMs: 12 * 60 * 60 * 1000,
 });
+console.log({oneShotRegistered, periodicRegistered});
 ```
 
-## API
+The returned booleans indicate registration results. They do not prove that a queued mutation was delivered or that a periodic event will run at an exact time.
 
-| Function | Returns | |
-| --- | --- | --- |
-| `registerBackgroundSync(tag)` | `Promise<boolean>` | one-shot sync on reconnect |
-| `registerPeriodicSync(tag, { minIntervalMs? })` | `Promise<boolean>` | recurring sync (default 12h) |
-| `unregisterPeriodicSync(tag)` | `Promise<boolean>` | remove a periodic sync |
-| `postMessageToServiceWorker(message)` | `Promise<boolean>` | message the active SW |
-| `isBackgroundSyncSupported()` / `isPeriodicSyncSupported()` | `Promise<boolean>` | feature detection |
+## API and application responsibilities
 
-Every function returns `false` instead of throwing when the API is unavailable, so you never need a guard.
+| Export | Purpose |
+| --- | --- |
+| `registerBackgroundSync(tag)` | Request a one-shot sync registration. |
+| `registerPeriodicSync(tag, options?)` | Request a periodic registration with a minimum interval. |
+| `unregisterPeriodicSync(tag)` | Remove a periodic registration. |
+| `postMessageToServiceWorker(message)` | Send a message to the active worker. |
+| `isBackgroundSyncSupported()` | Check one-shot support on the ready registration. |
+| `isPeriodicSyncSupported()` | Check periodic support on the ready registration. |
 
-## Browser support
+The helpers await `navigator.serviceWorker.ready`; if no active registration becomes ready, that wait can remain pending. Capability and permission decisions belong to the browser. The calling application supplies its queue, sync handlers, retry policy, consent and fallback behavior. Service-worker messages should contain only data that the receiving worker is intended to process.
 
-Background Sync: Chrome, Edge, Opera, most Chromium browsers. Periodic Sync additionally needs an installed PWA. Safari and Firefox return `false` — fall back to the `online` event.
+For a queue handler, the application can listen for its chosen tag and pass its work to `event.waitUntil`. This repository provides registration and messaging helpers, rather than a complete offline database or synchronization service.
 
-## Why this exists
+## Quanta Study and maintenance
 
-Extracted from the offline-first PWA layer of **[quanta-study.de](https://quanta-study.de)**, where answers queued offline sync back automatically the moment the device reconnects, tab open or not.
+Maintained by Amos Matzke at [AM Creative Tech UG (haftungsbeschränkt)](https://quanta-study.de/am-creative-tech), the developer of **[Quanta Study — a web-based learning platform](https://quanta-study.de/en)**. Quanta Study brings personal materials and exam preparation into a browser application; this repository documents reusable service-worker registration helpers.
+
+Report a small reproduction and the actual browser capabilities through repository Issues. See `CITATION.cff` for attribution metadata.
 
 ## License
 
-MIT © [Amos Matzke](https://www.linkedin.com/in/amos-matzke-71a73139a) · [quanta-study.de](https://quanta-study.de)
+MIT, as provided in [LICENSE](./LICENSE). The license covers the repository software, not the full Quanta Study application or its online learning content.
